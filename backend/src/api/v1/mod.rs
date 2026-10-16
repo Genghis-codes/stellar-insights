@@ -245,6 +245,12 @@ pub fn routes(
         pool.clone(),
         Arc::clone(&rpc_client),
     ));
+    // #2666 — nothing previously called `sync_assets`/`take_snapshots`, so
+    // the trustline endpoints below always queried empty tables. Keep them
+    // fresh: re-sync from Horizon hourly, roll a snapshot for the growth
+    // chart once a day. `routes()` runs once at startup, so this spawns
+    // exactly one background loop per process.
+    let _trustline_sync_handle = trustline_analyzer.spawn(3_600, 86_400);
     let reference_routes = Router::new()
         // `POST /network/switch` is a placeholder that changes nothing, so
         // only the two read endpoints are exposed.
